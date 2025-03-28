@@ -15,6 +15,7 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
   public function defaultConfiguration() {
     return parent::defaultConfiguration() + [
       'sidebar_region' => FALSE,
+      'section_width' => FALSE,
       'num_rows' => 1,
       'row_1_cols' => 1,
       'row_2_cols' => 0,
@@ -64,6 +65,11 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
       '#type' => 'checkbox',
       '#title' => $this->t('Add Sidebar Region'),
       '#default_value' => $configuration['sidebar_region'],
+    ];
+    $form['section_width'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Full Page Width'),
+       '#default_value' => $configuration['section_width'],
     ];
     $form['num_rows'] = [
       '#type' => 'select',
@@ -137,6 +143,7 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
     $vals = $form_state->getValues();
 
     $this->configuration['sidebar_region'] = $form_state->getValue('sidebar_region');
+    $this->configuration['section_width'] = $form_state->getValue('section_width');
     $num_rows = $form_state->getValue('num_rows');
     $this->configuration['num_rows'] = $num_rows;
 
