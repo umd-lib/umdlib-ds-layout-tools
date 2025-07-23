@@ -5,9 +5,48 @@ namespace Drupal\umdlib_ds_layout_tools\Plugin\Layout;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Layout\LayoutDefault;
 use Drupal\Core\Plugin\PluginFormInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Form\FormState;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Template\Attribute;
 
-class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface {
+class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface, ContainerFactoryPluginInterface {
+
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * Construct new Drupal\umdlib_ds_layout_tools\Plugin\Layout\UMDLibDsLayoutConfig.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
+   */
+  public function __construct($configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entityTypeManager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+
+    $this->entityTypeManager = $entityTypeManager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    // @phpstan-ignore new.static
+    return new static($configuration, $plugin_id, $plugin_definition,
+      $container->get('entity_type.manager')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -29,6 +68,7 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
       'row_8_cols' => 0,
       'row_9_cols' => 0,
       'row_10_cols' => 0,
+      'use_search' => FALSE,
     ];
   }
 
@@ -152,6 +192,67 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
       $is_open_required = FALSE;
     }
 
+    if (\Drupal::moduleHandler()->moduleExists('search_web_components_layout')) {
+
+      $endpoints = $this->entityTypeManager->getStorage('search_api_endpoint')->loadMultiple();
+
+      $endpointOptions = [];
+      foreach ($endpoints as $endpoint) {
+        $endpointOptions[$endpoint->id()] = $endpoint->label();
+      }
+      $form['use_search'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Use this layout for search?'),
+        '#default_value' => !empty($configuration['use_search']) ? $configuration['use_search'] : FALSE,
+      ];
+
+      $form['search_components'] = [
+        '#type' => 'details',
+        '#open' => TRUE,
+        '#title' => $this->t('Search Components Configuration'),
+        '#states' => [
+          'visible' => [
+            ':input[name="layout_settings[use_search]"]' => ['checked' => TRUE],
+          ]
+        ],
+      ];
+
+      $form['search_components']['endpoint'] = [
+        '#title' => 'Search Endpoint',
+        '#type' => 'select',
+        '#required' => TRUE,
+        '#options' => $endpointOptions,
+        '#default_value' => $this->configuration['endpoint'] ?? array_key_first($endpointOptions),
+      ];
+
+      $form['search_components']['additionalParams'] = [
+        '#type' => 'textfield',
+        '#maxlength' => NULL,
+        '#title' => $this->t('Additional search params'),
+        '#default_value' => $this->configuration['additionalParams'],
+        '#description' => $this->t("A valid search query parameter string starting with '?'. These parameters will be added to all searches but will not be added to the page url."),
+      ];
+
+      $form['search_components']['defaultPerPage'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Default results per page'),
+        '#default_value' => $this->configuration['defaultPerPage'],
+        '#description' => $this->t('The default number of results to show per page.'),
+      ];
+
+      $form['search_components']['defaultResultDisplay'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Default result display'),
+        '#default_value' => $this->configuration['defaultResultDisplay'],
+      ];
+
+      $form['search_components']['updateUrl'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Update the page url with parameters from the search'),
+        '#default_value' => $this->configuration['updateUrl'],
+      ];
+    }
+
     return parent::buildConfigurationForm($form, $form_state);
   }
 
@@ -179,8 +280,6 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
       9 => $this->t('Nine'),
       10 => $this->t('Ten'),
     ];
-    $vals = $form_state->getValues();
-
     $section_vertical_spacing = $form_state->getValue('section_vertical_spacing');
     $this->configuration['section_vertical_spacing'] = $section_vertical_spacing;
 
@@ -198,6 +297,8 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
     $this->configuration['top_margin'] = $top_margin;
 
     $this->configuration['num_rows'] = $num_rows;
+    
+    $vals = $form_state->getValues();
 
     $column_info = [];
     $i = 1;
@@ -215,6 +316,64 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface 
       $i++;
     }
     $this->configuration['column_config'] = $column_info;
+
+    $use_search = $form_state->getValue('use_search');
+
+    $this->configuration['use_search'] = $use_search;
+    
+    if ($use_search && !empty($vals['search_components'])) {
+      $s_components = $vals['search_components'];
+      $this->configuration['endpoint'] = !empty($s_components['endpoint']) ? $s_components['endpoint'] : NULL;
+      $this->configuration['defaultPerPage'] = !empty($s_components['defaultPerPage']) ? $s_components['defaultPerPage'] : NULL;
+      $this->configuration['defaultResultDisplay'] = !empty($s_components['defaultResultDisplay']) ? $s_components['defaultResultDisplay'] : NULL;
+      $this->configuration['updateUrl'] = !empty($s_components['updateUrl']) ? $s_components['updateUrl'] : NULL;
+      $this->configuration['additionalParams'] = !empty($s_components['additionalParams']) ? $s_components['additionalParams'] : NULL;
+    }
+
     \Drupal::logger('layouts')->info(json_encode($vals));
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function build(array $regions) {
+    $build = parent::build($regions);
+
+    if (!$this->configuration['use_search']) {
+      return $build;
+    }
+
+    $endpointId = $this->configuration['endpoint'];
+
+    if ($endpointId) {
+      $endpoint = $this->entityTypeManager->getStorage('search_api_endpoint')->load($this->configuration['endpoint']);
+      if ($endpoint) {
+        $url = $endpoint->getBaseUrl()->toString();
+      }
+      else {
+        $this->getLogger('search_web_components_layout')->error('Failed to load Decoupled Search Endpoint @id', ['@id' => $this->configuration['endpoint']]);
+      }
+    }
+    else {
+      $this->getLogger('search_web_components_layout')->error('No endpoint provided for search_web_component_layout One Column layout.');
+    }
+
+    $build['#settings']['search_root_attributes'] = new Attribute([
+      'class' => ['endpoint-' . $this->configuration['endpoint']],
+      'url' => $url,
+      'defaultPerPage' => $this->configuration['defaultPerPage'],
+      'defaultResultDisplay' => $this->configuration['defaultResultDisplay'],
+    ]);
+
+    if (!$this->configuration['updateUrl']) {
+      $build['#settings']['search_root_attributes']['noPageUrlUpdate'] = !$this->configuration['updateUrl'];
+    }
+
+    if ($this->configuration['additionalParams']) {
+      $build['#settings']['search_root_attributes']['additionalParams'] = !$this->configuration['additionalParams'];
+    }
+
+    return $build;
+  } 
+  
 }
