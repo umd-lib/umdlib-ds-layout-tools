@@ -372,7 +372,6 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
     if ($this->configuration['additionalParams']) {
       $build['#settings']['search_root_attributes']['additionalParams'] = !$this->configuration['additionalParams'];
     }
-
     return $build;
   } 
   
