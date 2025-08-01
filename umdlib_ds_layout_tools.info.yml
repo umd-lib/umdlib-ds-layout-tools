@@ -5,7 +5,6 @@ package: 'UMDDS'
 type: module
 
 core_version_requirement: ^11
-version: 1.0.1
 
 dependencies:
 - layout_builder_restrictions
