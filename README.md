@@ -21,3 +21,11 @@ composer require 'drupal/layout_builder_restrictions:^3.0'
 ```
 
 Install command is available on the module pages.
+
+## Search Web Components Support
+
+Layout Tools and the UMDLIB DS theme support Decoupled Search API
+with  Search Web Components:
+
+* [Decoupled Search API](https://www.drupal.org/project/search_api_decoupled)
+* [Search Web Components](https://www.drupal.org/project/search_web_components)

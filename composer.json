@@ -17,7 +17,8 @@
         "drupal/extra_image_field_classes": "^1.3"
       },
     "suggest": {
-        "drupal/layout_builder_lock": "Lock blocks to regions"
+        "drupal/layout_builder_lock": "Lock blocks to regions",
+        "drupal/search_web_components": "Search API Headless Search Components"
     },
     "minimum-stability": "beta"
 }
