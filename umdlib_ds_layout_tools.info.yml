@@ -5,10 +5,11 @@ package: 'UMDDS'
 type: module
 
 core_version_requirement: ^11
-version: 1.0.1
 
 dependencies:
 - layout_builder_restrictions
 - block_list_override
 - ui_patterns_blocks
 - link_attributes
+- media_library_form_element
+- extra_image_field_classes
