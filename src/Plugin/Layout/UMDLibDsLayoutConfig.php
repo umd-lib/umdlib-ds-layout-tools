@@ -200,6 +200,7 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       foreach ($endpoints as $endpoint) {
         $endpointOptions[$endpoint->id()] = $endpoint->label();
       }
+
       $form['use_search'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Use this layout for search?'),
@@ -223,6 +224,13 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
         '#required' => TRUE,
         '#options' => $endpointOptions,
         '#default_value' => $this->configuration['endpoint'] ?? array_key_first($endpointOptions),
+      ];
+
+      $form['search_components']['url'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Endpoint URL Override'),
+        '#default_value' => $this->configuration['url'],
+        '#description' => $this->t('Used to override the endpoint URL. Usually /api/search/{search_endpoint_name}, if using a remote endpoint make sure to include the full url starting with https://. Initial search query parameters can be added to this url. Search query params added to this url will be used for the initial search if no search query params are present in the page url, they will also be added to the page url on search load, and can be removed by components.'),
       ];
 
       $form['search_components']['additionalParams'] = [
@@ -324,12 +332,12 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
     if ($use_search && !empty($vals['search_components'])) {
       $s_components = $vals['search_components'];
       $this->configuration['endpoint'] = !empty($s_components['endpoint']) ? $s_components['endpoint'] : NULL;
+      $this->configuration['url'] = !empty($s_components['url']) ? $s_components['url'] : NULL;
       $this->configuration['defaultPerPage'] = !empty($s_components['defaultPerPage']) ? $s_components['defaultPerPage'] : NULL;
       $this->configuration['defaultResultDisplay'] = !empty($s_components['defaultResultDisplay']) ? $s_components['defaultResultDisplay'] : NULL;
       $this->configuration['updateUrl'] = !empty($s_components['updateUrl']) ? $s_components['updateUrl'] : NULL;
       $this->configuration['additionalParams'] = !empty($s_components['additionalParams']) ? $s_components['additionalParams'] : NULL;
     }
-
     \Drupal::logger('layouts')->info(json_encode($vals));
   }
 
@@ -343,19 +351,24 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       return $build;
     }
 
-    $endpointId = $this->configuration['endpoint'];
-
-    if ($endpointId) {
-      $endpoint = $this->entityTypeManager->getStorage('search_api_endpoint')->load($this->configuration['endpoint']);
-      if ($endpoint) {
-        $url = $endpoint->getBaseUrl()->toString();
+    $url = $this->configuration['url'];
+    if (empty($url)) {
+      $endpointId = $this->configuration['endpoint'];
+      if ($endpointId) {
+        if ($this->configuration['endpoint'] === 'manual_entry') {
+        } else {
+          $endpoint = $this->entityTypeManager->getStorage('search_api_endpoint')->load($this->configuration['endpoint']);
+          if ($endpoint) {
+            $url = $endpoint->getBaseUrl()->toString();
+          }
+          else {
+            $this->getLogger('search_web_components_layout')->error('Failed to load Decoupled Search Endpoint @id', ['@id' => $this->configuration['endpoint']]);
+          }
+        }
       }
       else {
-        $this->getLogger('search_web_components_layout')->error('Failed to load Decoupled Search Endpoint @id', ['@id' => $this->configuration['endpoint']]);
+        $this->getLogger('search_web_components_layout')->error('No endpoint provided for search_web_component_layout One Column layout.');
       }
-    }
-    else {
-      $this->getLogger('search_web_components_layout')->error('No endpoint provided for search_web_component_layout One Column layout.');
     }
 
     $build['#settings']['search_root_attributes'] = new Attribute([
