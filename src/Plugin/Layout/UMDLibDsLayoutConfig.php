@@ -204,7 +204,6 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       $form['search_components']['endpoint'] = [
         '#title' => 'Search Endpoint',
         '#type' => 'select',
-        '#required' => TRUE,
         '#options' => $endpointOptions,
         '#default_value' => $this->configuration['endpoint'] ?? array_key_first($endpointOptions),
       ];
@@ -235,6 +234,13 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
         '#type' => 'textfield',
         '#title' => $this->t('Default result display'),
         '#default_value' => $this->configuration['defaultResultDisplay'],
+      ];
+
+      $form['search_components']['dateWidgetFacetField'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Date Widget Facet Field'),
+        '#default_value' => $this->configuration['dateWidgetFacetField'],
+        '#description' => $this->t("If the Date Range widget is used, specify a date facet field as configured in the Facets module."),
       ];
 
       $form['search_components']['updateUrl'] = [
@@ -316,6 +322,7 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       $this->configuration['defaultResultDisplay'] = !empty($s_components['defaultResultDisplay']) ? $s_components['defaultResultDisplay'] : NULL;
       $this->configuration['updateUrl'] = !empty($s_components['updateUrl']) ? $s_components['updateUrl'] : NULL;
       $this->configuration['additionalParams'] = !empty($s_components['additionalParams']) ? $s_components['additionalParams'] : NULL;
+      $this->configuration['dateWidgetFacetField'] = !empty($s_components['dateWidgetFacetField']) ? $s_components['dateWidgetFacetField'] : NULL;
     }
     \Drupal::logger('layouts')->info(json_encode($vals));
   }
@@ -363,6 +370,9 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
 
     if ($this->configuration['additionalParams']) {
       $build['#settings']['search_root_attributes']['additionalParams'] = !$this->configuration['additionalParams'];
+    }
+    if ($this->configuration['dateWidgetFacetField']) {
+      $build['#settings']['search_root_attributes']['dateWidgetFacetField'] = !$this->configuration['dateWidgetFacetField'];
     }
     return $build;
   } 
