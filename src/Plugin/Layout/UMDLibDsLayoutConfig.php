@@ -56,7 +56,6 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       'sidebar_region' => FALSE,
       'section_width' => FALSE,
       'top_margin' => FALSE,
-      'section_vertical_spacing' => 'default',
       'num_rows' => 1,
       'row_1_cols' => 1,
       'row_2_cols' => 0,
@@ -123,16 +122,8 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
 
     $form['top_margin'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Add top margin (no hero)'),
+      '#title' => $this->t('Increase top margin'),
       '#default_value' => !empty($configuration['top_margin']) ? $configuration['top_margin'] : FALSE,
-    ];
-
-    $form['section_vertical_spacing'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Spacing between Sections'),
-      '#options' => $sizes,
-      '#required' => TRUE,
-      '#default_value' => !empty($configuration['section_vertical_spacing']) ? $configuration['section_vertical_spacing'] : 'default',
     ];
 
     $form['num_rows'] = [
@@ -173,20 +164,12 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       ];
       $form[$machine_name][$machine_name . '_horizontal'] = [
         '#type' => 'select',
-        '#title' => $this->t('Column Spacing'),
+        '#title' => $this->t('Card Group Component Gap'),
         '#options' => array_filter($sizes, function ($key) {
-        return in_array($key, ['default', 'none']); // Only show 'default' and 'large'
+        return in_array($key, ['default', 'none']); // Only show 'default' and 'none'
       }, ARRAY_FILTER_USE_KEY),
         '#default_value' => !empty($configuration['column_config'][$machine_name]['horizontal']) ? 
                              $configuration['column_config'][$machine_name]['horizontal'] : 'default',
-        '#required' => $is_open_required,
-      ];
-      $form[$machine_name][$machine_name . '_vertical'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Row Spacing'),
-        '#options' => $sizes,
-        '#default_value' => !empty($configuration['column_config'][$machine_name]['vertical']) ? 
-                             $configuration['column_config'][$machine_name]['vertical'] : 'default',
         '#required' => $is_open_required,
       ];
       $is_open_required = FALSE;
@@ -200,6 +183,7 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       foreach ($endpoints as $endpoint) {
         $endpointOptions[$endpoint->id()] = $endpoint->label();
       }
+
       $form['use_search'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Use this layout for search?'),
@@ -220,9 +204,15 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       $form['search_components']['endpoint'] = [
         '#title' => 'Search Endpoint',
         '#type' => 'select',
-        '#required' => TRUE,
         '#options' => $endpointOptions,
         '#default_value' => $this->configuration['endpoint'] ?? array_key_first($endpointOptions),
+      ];
+
+      $form['search_components']['url'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Endpoint URL Override'),
+        '#default_value' => $this->configuration['url'],
+        '#description' => $this->t('Used to override the endpoint URL. Usually /api/search/{search_endpoint_name}, if using a remote endpoint make sure to include the full url starting with https://. Initial search query parameters can be added to this url. Search query params added to this url will be used for the initial search if no search query params are present in the page url, they will also be added to the page url on search load, and can be removed by components.'),
       ];
 
       $form['search_components']['additionalParams'] = [
@@ -244,6 +234,13 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
         '#type' => 'textfield',
         '#title' => $this->t('Default result display'),
         '#default_value' => $this->configuration['defaultResultDisplay'],
+      ];
+
+      $form['search_components']['dateWidgetFacetField'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Date Widget Facet Field'),
+        '#default_value' => $this->configuration['dateWidgetFacetField'],
+        '#description' => $this->t("If the Date Range widget is used, specify a date facet field as configured in the Facets module."),
       ];
 
       $form['search_components']['updateUrl'] = [
@@ -280,8 +277,6 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       9 => $this->t('Nine'),
       10 => $this->t('Ten'),
     ];
-    $section_vertical_spacing = $form_state->getValue('section_vertical_spacing');
-    $this->configuration['section_vertical_spacing'] = $section_vertical_spacing;
 
     $sidebar_region = $form_state->getValue('sidebar_region'); 
 
@@ -308,11 +303,9 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       if ($i <= $num_rows) {
         $row_cols = $vals[$machine_name][$machine_name . '_cols'];
       }
-      // $this->configuration[$machine_name . '_cols'] = $row_cols;
       $column_info[$machine_name]['card_group'] = !empty($vals[$machine_name]['card_group']) ? (bool) $vals[$machine_name]['card_group'] : FALSE;
       $column_info[$machine_name]['cols'] = $row_cols;
       $column_info[$machine_name]['horizontal'] = $vals[$machine_name][$machine_name . '_horizontal'];
-      $column_info[$machine_name]['vertical'] = $vals[$machine_name][$machine_name . '_vertical'];
       $i++;
     }
     $this->configuration['column_config'] = $column_info;
@@ -324,12 +317,13 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
     if ($use_search && !empty($vals['search_components'])) {
       $s_components = $vals['search_components'];
       $this->configuration['endpoint'] = !empty($s_components['endpoint']) ? $s_components['endpoint'] : NULL;
+      $this->configuration['url'] = !empty($s_components['url']) ? $s_components['url'] : NULL;
       $this->configuration['defaultPerPage'] = !empty($s_components['defaultPerPage']) ? $s_components['defaultPerPage'] : NULL;
       $this->configuration['defaultResultDisplay'] = !empty($s_components['defaultResultDisplay']) ? $s_components['defaultResultDisplay'] : NULL;
       $this->configuration['updateUrl'] = !empty($s_components['updateUrl']) ? $s_components['updateUrl'] : NULL;
       $this->configuration['additionalParams'] = !empty($s_components['additionalParams']) ? $s_components['additionalParams'] : NULL;
+      $this->configuration['dateWidgetFacetField'] = !empty($s_components['dateWidgetFacetField']) ? $s_components['dateWidgetFacetField'] : NULL;
     }
-
     \Drupal::logger('layouts')->info(json_encode($vals));
   }
 
@@ -343,19 +337,24 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       return $build;
     }
 
-    $endpointId = $this->configuration['endpoint'];
-
-    if ($endpointId) {
-      $endpoint = $this->entityTypeManager->getStorage('search_api_endpoint')->load($this->configuration['endpoint']);
-      if ($endpoint) {
-        $url = $endpoint->getBaseUrl()->toString();
+    $url = $this->configuration['url'];
+    if (empty($url)) {
+      $endpointId = $this->configuration['endpoint'];
+      if ($endpointId) {
+        if ($this->configuration['endpoint'] === 'manual_entry') {
+        } else {
+          $endpoint = $this->entityTypeManager->getStorage('search_api_endpoint')->load($this->configuration['endpoint']);
+          if ($endpoint) {
+            $url = $endpoint->getBaseUrl()->toString();
+          }
+          else {
+            $this->getLogger('search_web_components_layout')->error('Failed to load Decoupled Search Endpoint @id', ['@id' => $this->configuration['endpoint']]);
+          }
+        }
       }
       else {
-        $this->getLogger('search_web_components_layout')->error('Failed to load Decoupled Search Endpoint @id', ['@id' => $this->configuration['endpoint']]);
+        $this->getLogger('search_web_components_layout')->error('No endpoint provided for search_web_component_layout One Column layout.');
       }
-    }
-    else {
-      $this->getLogger('search_web_components_layout')->error('No endpoint provided for search_web_component_layout One Column layout.');
     }
 
     $build['#settings']['search_root_attributes'] = new Attribute([
@@ -371,6 +370,9 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
 
     if ($this->configuration['additionalParams']) {
       $build['#settings']['search_root_attributes']['additionalParams'] = !$this->configuration['additionalParams'];
+    }
+    if ($this->configuration['dateWidgetFacetField']) {
+      $build['#settings']['search_root_attributes']['dateWidgetFacetField'] = !$this->configuration['dateWidgetFacetField'];
     }
     return $build;
   } 
