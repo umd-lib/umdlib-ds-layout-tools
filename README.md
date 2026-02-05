@@ -6,9 +6,11 @@ It has no utility outside of this context.
 
 Use it to extend layout functionality and configurations for Library DS sites.
 
-Current stable version: 1.0.0
+Current stable version: 1.0.0 (main)
 
 Current development version: 2.x
+
+[UMD Libraries Drupal Versioning Information](https://github.com/umd-lib/umd-drupal-core/tree/main)
 
 ## Installation
 
