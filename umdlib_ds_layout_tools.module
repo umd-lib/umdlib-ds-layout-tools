@@ -31,6 +31,11 @@ function umdlib_ds_layout_tools_entity_presave(EntityInterface $entity) {
     'text_with_summary',
   ];
 
+  // Only process entities that have field definitions (content entities).
+  if (!method_exists($entity, 'getFieldDefinitions')) {
+    return;
+  }
+
   foreach ($entity->getFieldDefinitions() as $field_name => $definition) {
     if (!in_array($definition->getType(), $text_field_types)) {
       continue;
