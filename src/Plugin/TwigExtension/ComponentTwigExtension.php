@@ -3,6 +3,7 @@
 namespace Drupal\umdlib_ds_layout_tools\TwigExtension;
 
 use Twig\Extension\AbstractExtension;
+use Twig\Extension\ExtensionInterface;
 use Twig\TwigFunction;
 use Twig\TwigFilter;
 use Drupal\Core\Render\Markup;
@@ -13,13 +14,7 @@ use Drupal\Component\Render\MarkupInterface;
  *
  * @package Drupal\umdlib_ds_layout_tools\TwigExtension
  */
-class ComponentTwigExtension extends AbstractExtension {
-  /**
-   * {@inheritdoc}
-   */
-  public function getName() {
-    return 'umdlib_ds_layout_tools.twig_extension';
-  }
+class ComponentTwigExtension extends AbstractExtension implements ExtensionInterface {
 
   public function getFilters() {
     return [

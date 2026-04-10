@@ -1,6 +1,5 @@
 services:
   umdlib_ds_layout_tools.twig_extension:
-    arguments: [ '@renderer' ]
     class: Drupal\umdlib_ds_layout_tools\TwigExtension\ComponentTwigExtension
     tags:
-    - { name: twig.extension }
+      - { name: twig.extension }
