@@ -7,6 +7,7 @@
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Component\Utility\Html;
 
 /**
@@ -25,16 +26,16 @@ function umdlib_ds_layout_tools_form_layout_builder_add_block_alter(&$form, Form
  * Implements hook_entity_presave().
  */
 function umdlib_ds_layout_tools_entity_presave(EntityInterface $entity) {
+  // Only process content entities that have fields.
+  if (!$entity instanceof ContentEntityInterface) {
+    return;
+  }
+
   $text_field_types = [
     'text',
     'text_long',
     'text_with_summary',
   ];
-
-  // Only process entities that have field definitions (content entities).
-  if (!method_exists($entity, 'getFieldDefinitions')) {
-    return;
-  }
 
   foreach ($entity->getFieldDefinitions() as $field_name => $definition) {
     if (!in_array($definition->getType(), $text_field_types)) {
