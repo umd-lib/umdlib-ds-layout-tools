@@ -23,33 +23,15 @@ function umdlib_ds_layout_tools_form_layout_builder_add_block_alter(&$form, Form
 }
 
 /**
- * Implements hook_entity_presave().
+ * Implements hook_ui_patterns_source_value_alter().
  */
-function umdlib_ds_layout_tools_entity_presave(EntityInterface $entity) {
-  // Only process content entities that have fields.
-  if (!$entity instanceof ContentEntityInterface) {
-    return;
-  }
-
-  $text_field_types = [
-    'text',
-    'text_long',
-    'text_with_summary',
-  ];
-
-  foreach ($entity->getFieldDefinitions() as $field_name => $definition) {
-    if (!in_array($definition->getType(), $text_field_types)) {
-      continue;
-    }
-
-    foreach ($entity->get($field_name) as $item) {
-      if (!empty($item->value)) {
-        $item->value = _umdlib_ds_layout_tools_strip_inline_styles($item->value);
-      }
-      // Also strip from summary if present.
-      if (isset($item->summary) && !empty($item->summary)) {
-        $item->summary = _umdlib_ds_layout_tools_strip_inline_styles($item->summary);
-      }
+function umdlib_ds_layout_tools_ui_patterns_source_value_alter(mixed &$value, \Drupal\ui_patterns\SourceInterface $source, array &$source_configuration) : void {
+  $type_definition = $source->getPropDefinition()['ui_patterns']['type_definition'];
+  if ($type_definition instanceof \Drupal\ui_patterns\Plugin\UiPatterns\PropType\SlotPropType) {
+    if (is_array($value) &&
+        !empty($value['#type']) &&
+        $value['#type'] === 'processed_text' && !empty($value['#text'])) {
+      $value['#text'] = _umdlib_ds_layout_tools_strip_inline_styles($value['#text']);
     }
   }
 }
