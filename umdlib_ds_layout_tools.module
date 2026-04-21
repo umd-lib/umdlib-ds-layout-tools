@@ -6,6 +6,9 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Component\Utility\Html;
 
 /**
  * Implements hook_form_BASE_FORM_ID_alter() for layout_builder_add_block.
@@ -19,3 +22,30 @@ function umdlib_ds_layout_tools_form_layout_builder_add_block_alter(&$form, Form
   }
 }
 
+/**
+ * Implements hook_ui_patterns_source_value_alter().
+ */
+function umdlib_ds_layout_tools_ui_patterns_source_value_alter(mixed &$value, \Drupal\ui_patterns\SourceInterface $source, array &$source_configuration) : void {
+  $type_definition = $source->getPropDefinition()['ui_patterns']['type_definition'];
+  if ($type_definition instanceof \Drupal\ui_patterns\Plugin\UiPatterns\PropType\SlotPropType) {
+    if (is_array($value) &&
+        !empty($value['#type']) &&
+        $value['#type'] === 'processed_text' && !empty($value['#text'])) {
+      $value['#text'] = _umdlib_ds_layout_tools_strip_inline_styles($value['#text']);
+    }
+  }
+}
+
+/**
+ * Strips inline styles from an HTML string.
+ */
+function _umdlib_ds_layout_tools_strip_inline_styles(string $html): string {
+  $dom = Html::load($html);
+  $xpath = new \DOMXPath($dom);
+
+  foreach ($xpath->query('//*[@style]') as $node) {
+    $node->removeAttribute('style');
+  }
+
+  return Html::serialize($dom);
+}
