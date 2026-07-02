@@ -77,7 +77,7 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
 
       // Join with separator
       $elements[$delta] = [
-        '#markup' => '<div class="taxonomy">' . implode(' / ', $rendered_terms) . '</div>',
+        '#markup' => '<div class="taxonomy umd-lib body body--content wysiwyg-editor s-margin-general-medium">' . implode(' / ', $rendered_terms) . '</div>',
         '#allowed_tags' => ['span', 'div'],
       ];
     }
