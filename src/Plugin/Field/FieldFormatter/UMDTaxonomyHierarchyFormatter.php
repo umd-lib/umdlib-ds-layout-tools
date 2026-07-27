@@ -24,6 +24,7 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
     return [
       'link' => TRUE,
       'alternative_link_pattern' => '',
+      'link_hierarchy' => 'default',
     ] + parent::defaultSettings();
   }
  
@@ -43,6 +44,18 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
       '#description' => $this->t('If set, terms will link to this URL with the term label replacing the {placeholder} token. This overrides the link setting above.'),
     ];
 
+    $form['link_hierarchy'] = [
+      '#title' => $this->t('Link Hierarchy'),
+      '#type' => 'select',
+      '#options' => [
+        'child' => $this->t('Child'),
+        'parent' => $this->t('Parent'),
+        'default' => $this->t('Default'),
+      ],
+      '#default_value' => $this->getSetting('link_hierarchy'),
+      '#description' => $this->t('Choose whether linking should be based on the child term, the parent term, or follow the default per-term behavior.'),
+    ];
+
     return $form;
   }
  
@@ -59,6 +72,10 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
       ]);
     }
 
+    $summary[] = $this->t('Link hierarchy: @mode', [
+      '@mode' => $this->t(ucfirst((string) $this->getSetting('link_hierarchy'))),
+    ]);
+
     return $summary;
   }
 
@@ -66,6 +83,7 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
     $elements = [];
     $link = $this->getSetting('link');
     $alternative_link_pattern = trim((string) $this->getSetting('alternative_link_pattern'));
+    $link_hierarchy = (string) $this->getSetting('link_hierarchy');
  
     foreach ($items as $delta => $item) {
       $term = $item->entity;
@@ -76,26 +94,26 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
 
       // Build hierarchy (parents up to root)
       $hierarchy = $this->buildHierarchy($term);
+
+      if ($link_hierarchy === 'child' || $link_hierarchy === 'parent') {
+        $selected_term = $link_hierarchy === 'child' ? end($hierarchy) : reset($hierarchy);
+        $hierarchy_text = implode(' / ', array_map(function ($hierarchy_term) {
+          return htmlspecialchars($hierarchy_term->label(), ENT_QUOTES, 'UTF-8');
+        }, $hierarchy));
+
+        $rendered_hierarchy = $this->buildTermMarkup($hierarchy_text, $selected_term, $link, $alternative_link_pattern);
+
+        $elements[$delta] = [
+          '#markup' => '<div class="taxonomy umd-lib body body--content wysiwyg-editor s-margin-general-medium">' . $rendered_hierarchy . '</div>',
+          '#allowed_tags' => ['span', 'div', 'a'],
+        ];
+        continue;
+      }
  
       // Render each term wrapped in span
       $rendered_terms = [];
       foreach ($hierarchy as $parent_term) {
-        $term_label = $parent_term->label();
- 
-        if ($alternative_link_pattern !== '') {
-          $url = str_replace('{placeholder}', $term_label, $alternative_link_pattern);
-          $term_label = \Drupal\Core\Link::fromTextAndUrl(
-            $term_label,
-            $this->buildUrlFromPattern($url)
-          )->toString();
-        }
-        elseif ($link) {
-          $term_label = $parent_term->toLink()->toString();
-        }
-        else {
-          // Escape the label for safety
-          $term_label = htmlspecialchars($term_label, ENT_QUOTES, 'UTF-8');
-        }
+        $term_label = $this->buildTermMarkup($parent_term->label(), $parent_term, $link, $alternative_link_pattern);
 
         $rendered_terms[] = '<span class="term">' . $term_label . '</span>';
       }
@@ -103,7 +121,7 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
       // Join with separator
       $elements[$delta] = [
         '#markup' => '<div class="taxonomy umd-lib body body--content wysiwyg-editor s-margin-general-medium">' . implode(' / ', $rendered_terms) . '</div>',
-        '#allowed_tags' => ['span', 'div'],
+        '#allowed_tags' => ['span', 'div', 'a'],
       ];
     }
     return $elements;
@@ -112,6 +130,27 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
   /**
    * Build the hierarchy of terms up to root.
    */
+  private function buildTermMarkup($text, $term, $link, $alternative_link_pattern) {
+    $escaped_text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+
+    if ($alternative_link_pattern !== '') {
+      $url = str_replace('{placeholder}', $term->label(), $alternative_link_pattern);
+      return \Drupal\Core\Link::fromTextAndUrl(
+        $escaped_text,
+        $this->buildUrlFromPattern($url)
+      )->toString();
+    }
+
+    if ($link) {
+      return \Drupal\Core\Link::fromTextAndUrl(
+        $escaped_text,
+        $term->toUrl()
+      )->toString();
+    }
+
+    return $escaped_text;
+  }
+
   private function buildUrlFromPattern($pattern) {
     if (preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:/', $pattern)) {
       return \Drupal\Core\Url::fromUri($pattern);
