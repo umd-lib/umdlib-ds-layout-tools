@@ -23,6 +23,7 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
   public static function defaultSettings() {
     return [
       'link' => TRUE,
+      'alternative_link_pattern' => '',
     ] + parent::defaultSettings();
   }
  
@@ -35,20 +36,36 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
       '#default_value' => $this->getSetting('link'),
     ];
 
+    $form['alternative_link_pattern'] = [
+      '#title' => $this->t('Alternative Link Pattern'),
+      '#type' => 'textfield',
+      '#default_value' => $this->getSetting('alternative_link_pattern'),
+      '#description' => $this->t('If set, terms will link to this URL with the term label replacing the {placeholder} token. This overrides the link setting above.'),
+    ];
+
     return $form;
   }
  
-  public function settingsummary() {
+  public function settingssummary() {
     $summary = [];
     $summary[] = $this->t('Link terms: @link', [
       '@link' => $this->getSetting('link') ? $this->t('Yes') : $this->t('No'),
     ]);
+
+    $pattern = trim((string) $this->getSetting('alternative_link_pattern'));
+    if ($pattern !== '') {
+      $summary[] = $this->t('Alternative link pattern: @pattern', [
+        '@pattern' => $pattern,
+      ]);
+    }
+
     return $summary;
   }
 
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = [];
     $link = $this->getSetting('link');
+    $alternative_link_pattern = trim((string) $this->getSetting('alternative_link_pattern'));
  
     foreach ($items as $delta => $item) {
       $term = $item->entity;
@@ -65,9 +82,17 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
       foreach ($hierarchy as $parent_term) {
         $term_label = $parent_term->label();
  
-        if ($link) {
+        if ($alternative_link_pattern !== '') {
+          $url = str_replace('{placeholder}', $term_label, $alternative_link_pattern);
+          $term_label = \Drupal\Core\Link::fromTextAndUrl(
+            $term_label,
+            $this->buildUrlFromPattern($url)
+          )->toString();
+        }
+        elseif ($link) {
           $term_label = $parent_term->toLink()->toString();
-        } else {
+        }
+        else {
           // Escape the label for safety
           $term_label = htmlspecialchars($term_label, ENT_QUOTES, 'UTF-8');
         }
@@ -87,6 +112,18 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
   /**
    * Build the hierarchy of terms up to root.
    */
+  private function buildUrlFromPattern($pattern) {
+    if (preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:/', $pattern)) {
+      return \Drupal\Core\Url::fromUri($pattern);
+    }
+
+    if (str_starts_with($pattern, '/')) {
+      return \Drupal\Core\Url::fromUserInput($pattern);
+    }
+
+    return \Drupal\Core\Url::fromUserInput('/' . ltrim($pattern, '/'));
+  }
+
   private function buildHierarchy($term) {
     $hierarchy = [];
     $current = $term;
