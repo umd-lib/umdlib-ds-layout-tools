@@ -364,14 +364,14 @@ class UMDLibDsLayoutConfig extends LayoutDefault implements PluginFormInterface,
       'defaultResultDisplay' => $this->configuration['defaultResultDisplay'],
     ]);
 
-    if (!$this->configuration['updateUrl']) {
+    if (!empty(!$this->configuration['updateUrl'])) {
       $build['#settings']['search_root_attributes']['noPageUrlUpdate'] = !$this->configuration['updateUrl'];
     }
 
-    if ($this->configuration['additionalParams']) {
+    if (!empty($this->configuration['additionalParams'])) {
       $build['#settings']['search_root_attributes']['additionalParams'] = !$this->configuration['additionalParams'];
     }
-    if ($this->configuration['dateWidgetFacetField']) {
+    if (!empty($this->configuration['dateWidgetFacetField'])) {
       $build['#settings']['search_root_attributes']['dateWidgetFacetField'] = !$this->configuration['dateWidgetFacetField'];
     }
     return $build;
