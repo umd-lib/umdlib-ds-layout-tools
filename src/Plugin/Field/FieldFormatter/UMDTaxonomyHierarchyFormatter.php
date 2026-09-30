@@ -98,7 +98,7 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
       if ($link_hierarchy === 'child' || $link_hierarchy === 'parent') {
         $selected_term = $link_hierarchy === 'child' ? end($hierarchy) : reset($hierarchy);
         $hierarchy_text = implode(' / ', array_map(function ($hierarchy_term) {
-          return htmlspecialchars($hierarchy_term->label(), ENT_QUOTES, 'UTF-8');
+          return $hierarchy_term->label();
         }, $hierarchy));
 
         $rendered_hierarchy = $this->buildTermMarkup($hierarchy_text, $selected_term, $link, $alternative_link_pattern);
@@ -131,24 +131,22 @@ class UMDTaxonomyHierarchyFormatter extends FormatterBase {
    * Build the hierarchy of terms up to root.
    */
   private function buildTermMarkup($text, $term, $link, $alternative_link_pattern) {
-    $escaped_text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-
     if ($alternative_link_pattern !== '') {
-      $url = str_replace('{placeholder}', $term->label(), $alternative_link_pattern);
+      $url = str_replace('{placeholder}', rawurlencode($term->label()), $alternative_link_pattern);
       return \Drupal\Core\Link::fromTextAndUrl(
-        $escaped_text,
+        $text,
         $this->buildUrlFromPattern($url)
       )->toString();
     }
 
     if ($link) {
       return \Drupal\Core\Link::fromTextAndUrl(
-        $escaped_text,
+        $text,
         $term->toUrl()
       )->toString();
     }
 
-    return $escaped_text;
+    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
   }
 
   private function buildUrlFromPattern($pattern) {
